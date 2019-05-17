@@ -4,37 +4,53 @@ import glob
 import numpy as np
 import os.path as op
 
-FILE = "data/left/left01.jpg"
-
-def calibrate(img):
+def FindChessboardCorners(img):
+    patternSize1 = (9, 6)
+    patternSize2 = (6, 9)
     criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
-    patternSize = (9, 6)
-    retval, corners = cv2.findChessboardCorners(img, patternSize, None)
+
+    retval, corners = cv2.findChessboardCorners(img, patternSize1, None)
+    patternSize = patternSize1
     if not retval:
-        retval, corners = cv2.findChessboardCorners(img, patternSize, None)
+        retval, corners = cv2.findChessboardCorners(img, patternSize2, None)
+        patternSize = patternSize2
+
     if not retval:
-        raise Exception("Cannot find chessboard corners")
+        raise Exception("Cannot find chessboard corners.")
 
     corners = cv2.cornerSubPix(img, corners, (11, 11), (-1,-1), criteria)
+    return corners, patternSize
+
+def Calibrate(img):
+    corners, patternSize = FindChessboardCorners(img)
 
     object_points = []
     object_points = np.zeros((patternSize[1]*patternSize[0], 3), np.float32)
     object_points[:,:2] = np.mgrid[0:patternSize[0], 0:patternSize[1]].T.reshape(-1,2)
 
     retval, cameraMatrix, distCoeffs, rvecs, tvecs = cv2.calibrateCamera([object_points], [corners], img.shape[::-1], None, None)
-    undistorted = cv2.undistort(img, cameraMatrix, distCoeffs)
-    return retval, cameraMatrix, distCoeffs, rvecs, tvecs, undistorted
+    if not retval:
+        raise Exception("calibrateCamera failed.")
+    
+    return cameraMatrix, distCoeffs, rvecs, tvecs
+
+def Undistort(img):
+    cameraMat, distCoeffs, _, _ = Calibrate(img)
+    undistorted = cv2.undistort(img, cameraMat, distCoeffs)
+    return undistorted
 
 def main():
     pics = glob.glob("../data/left/*")
     for pic in pics:
         img = cv2.imread(pic)
         img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        _, _, _, _, _, undistorted = calibrate(img)
+        undistorted = Undistort(img)
 
         basename = op.basename(pic)
         cv2.imwrite(os.path.join("../result/basics/left", basename), undistorted)
         print(basename, "completed.")
 
 if __name__ == "__main__":
-    main()
+    img = cv2.imread("../data/left/left01.jpg")
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    print(FindChessboardCorners(img))
