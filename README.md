@@ -2,10 +2,10 @@
 Stereo project implementation using Python and OpenCV-Python.
 
 ## Directory structure
-`code/basics`: Part-One -- Camera Basics
-`code/stereo`: Part-Tow -- Stereo Calibration
-`/data`: Original data in the two zip file.
-`/result`: Program result folder.
+* `code/basics`: Part-One -- Camera Basics
+* `code/stereo`: Part-Tow -- Stereo Calibration
+* `/data`: Original data in the two zip file.
+* `/result`: Program result folder.
 
 ## How to use -- Part one
 ```shell
