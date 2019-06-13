@@ -10,18 +10,26 @@ Stereo project implementation using Python and OpenCV-Python.
 * `/result`: Program result folder.
   * `/result/undistorted`: Undistorted result from Part-One
   * `/result/rectified`: Rectification result from Part-Two
+  * `/result/disparity`: SGBM result from Part-Three
 
 ## How to use -- Calibration and Distortion
 ```shell
 git clone http://github.com/iondex/stereo-project
 cd stereo-project/code/
 python calib.py left
-# results are in results/undistorted/left
+# results are in result/undistorted/left
 ```
 
 ## How to use -- Stereo Calibrate and Rectification
 ```shell
 cd stereo-project/code/
 python stereo_calib.py
-# results are in results/rectified
+# results are in result/rectified
+```
+
+## How to use -- Stereo Matching
+```shell
+cd stereo-project/code/
+python stereo_match.py
+# result are stored in result/disparity
 ```

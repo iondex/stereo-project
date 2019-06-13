@@ -2,17 +2,7 @@ import cv2
 import numpy as np
 import glob
 import os.path as op
-
-def FindChessboardCorners(img):
-    patternSize = (9, 6)
-    criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
-
-    retval, corners = cv2.findChessboardCorners(img, patternSize, flags=cv2.CALIB_CB_ADAPTIVE_THRESH + cv2.CALIB_CB_NORMALIZE_IMAGE)
-    if not retval:
-        raise Exception("Cannot find chessboard corners.")
-
-    corners = cv2.cornerSubPix(img, corners, (11, 11), (-1, -1), criteria)
-    return corners, patternSize
+from camera_util import FindChessboardCorners, LoadChessboardImages
 
 def FindChessboardCornersList(imgList):
     imgPointsList1 = []
@@ -34,19 +24,6 @@ def FindChessboardCornersList(imgList):
         objPointsList.append(objectPoints)
 
     return imgPointsList1, imgPointsList2, objPointsList
-
-def Calibrate(img):
-    corners, patternSize = FindChessboardCorners(img)
-
-    object_points = []
-    object_points = np.zeros((patternSize[1]*patternSize[0], 3), np.float32)
-    object_points[:,:2] = np.mgrid[0:patternSize[0], 0:patternSize[1]].T.reshape(-1,2)
-
-    retval, cameraMatrix, distCoeffs, rvecs, tvecs = cv2.calibrateCamera([object_points], [corners], img.shape[::-1], None, None)
-    if not retval:
-        raise Exception("calibrateCamera failed.")
-    
-    return cameraMatrix, distCoeffs, rvecs, tvecs
 
 def StereoCalibrate(imgList):
     print("Begin calibrating...")
@@ -85,34 +62,30 @@ def StereoCalibrate(imgList):
 
     print("Begin rectification...")
     R1, R2, P1, P2, Q, validPixROI1, validPixROI2 = \
-        cv2.stereoRectify(cameraMatrix1, distCoeffs1, cameraMatrix2, distCoeffs2, imageSize, R, T, flags=cv2.CALIB_ZERO_DISPARITY)
+        cv2.stereoRectify(cameraMatrix1, distCoeffs1, cameraMatrix2, distCoeffs2, imageSize, R, T)
+
+    print("Rectification complete.")
+    print("Result: ")
+    print("R1: ", R1)
+    print("R2: ", R2)
+    print("P1: ", P1)
+    print("P2: ", P2)
+    print("Tx: ", P2[0,3]/P1[0,0])
+    print("Q: ", Q)
 
     mapL1, mapL2 = cv2.initUndistortRectifyMap(cameraMatrix1, distCoeffs1, R1, P1, imageSize, cv2.CV_16SC2)
     mapR1, mapR2 = cv2.initUndistortRectifyMap(cameraMatrix1, distCoeffs1, R1, P1, imageSize, cv2.CV_16SC2)
     imgListL, imgListR = tuple(zip(*imgList))
     for (img, fileName) in imgListL:
         rectL = cv2.remap(img, mapL1, mapL2, cv2.INTER_LINEAR)
-        cv2.imwrite("../../result/rectified/left/" + fileName, rectL)
+        cv2.imwrite("../result/rectified/left/" + fileName, rectL)
 
     for (img, fileName) in imgListR:
         rectR = cv2.remap(img, mapR1, mapR2, cv2.INTER_LINEAR)
-        cv2.imwrite("../../result/rectified/right/" + fileName, rectR)
-    print("Rectification complete.")
+        cv2.imwrite("../result/rectified/right/" + fileName, rectR)
 
 def main():
-    def loadImage(fileName):
-        orig = cv2.imread(fileName)
-        im = cv2.cvtColor(orig, cv2.COLOR_BGR2GRAY)
-        return im, op.basename(fileName)
-
-    fileList1 = glob.glob("../../data/left/*")
-    fileList2 = glob.glob("../../data/right/*")
-    fileList1 = fileList1#[:len(fileList1) // 2]
-    fileList2 = fileList2#[:len(fileList2) // 2]
-    print("Begin reading images: ", len(fileList1))
-    imgList1 = [loadImage(fileName) for fileName in fileList1]
-    imgList2 = [loadImage(fileName) for fileName in fileList2]
-    imgList = list(zip(imgList1, imgList2))
+    imgList = LoadChessboardImages()
     StereoCalibrate(imgList)
 
 if __name__ == "__main__":
